@@ -5,13 +5,14 @@ import de.adesso.kicker.match.persistence.Match;
 import de.adesso.kicker.user.persistence.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.mail.javamail.MimeMessagePreparator;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
-import java.util.Objects;
+import java.text.MessageFormat;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -40,7 +41,8 @@ public class EmailService {
     }
 
     private String setSubject(Match match) {
-        return String.format("Verify Match: %s played on %s", match.getMatchId(), match.getDate().toString());
+        ResourceBundle labels = ResourceBundle.getBundle("messages", LocaleContextHolder.getLocale());
+        return MessageFormat.format(labels.getString("email.subject"), match.getMatchId(), match.getDate().toString());
     }
 
     private String verificationText(MatchVerificationSentEvent matchVerificationSentEvent) {
@@ -63,6 +65,7 @@ public class EmailService {
         if (checkPlayerExist(match.getTeamAPlayer2())) {
             mailProperties.put("playerA2Name", match.getTeamAPlayer2().getFullName());
         }
+
         if (checkPlayerExist(match.getTeamBPlayer2())) {
             mailProperties.put("playerB2Name", match.getTeamBPlayer2().getFullName());
         }
