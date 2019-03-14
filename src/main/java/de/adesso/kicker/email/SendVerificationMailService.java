@@ -11,33 +11,24 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.mail.javamail.MimeMessagePreparator;
 import org.springframework.stereotype.Service;
 
+import javax.servlet.http.HttpServletRequest;
 import java.text.MessageFormat;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Objects;
+import java.util.ResourceBundle;
 
 @Service
 @RequiredArgsConstructor
-public class EmailService {
+public class SendVerificationMailService {
 
     private final JavaMailSender mailSender;
 
     private final EmailMessageBuilder emailMessageBuilder;
 
-    static final String ACCEPT_URL = "http://localhost/notifications/accept/";
-
-    static final String DECLINE_URL = "http://localhost/notifications/decline/";
-
     @EventListener
     public void sendVerification(MatchVerificationSentEvent matchVerificationSentEvent) {
-        var matchVerificationRequest = matchVerificationSentEvent.getMatchVerificationRequest();
-        var match = matchVerificationRequest.getMatch();
-        MimeMessagePreparator messagePreparator = mimeMessage -> {
-            MimeMessageHelper messageHelper = new MimeMessageHelper(mimeMessage);
-            messageHelper.setFrom(match.getTeamAPlayer1().getEmail());
-            messageHelper.setTo(matchVerificationRequest.getReceiver().getEmail());
-            messageHelper.setSubject(setSubject(match));
-            messageHelper.setText(verificationText(matchVerificationSentEvent), true);
-        };
-        mailSender.send(messagePreparator);
+        var message = createEmail(matchVerificationSentEvent);
+        mailSender.send(message);
     }
 
     private String setSubject(Match match) {
@@ -46,19 +37,15 @@ public class EmailService {
     }
 
     private String verificationText(MatchVerificationSentEvent matchVerificationSentEvent) {
-        String acceptUrl = ACCEPT_URL + matchVerificationSentEvent.getMatchVerificationRequest().getNotificationId();
-        String declineUrl = DECLINE_URL + matchVerificationSentEvent.getMatchVerificationRequest().getNotificationId();
-
         Match match = matchVerificationSentEvent.getMatchVerificationRequest().getMatch();
 
-        return emailMessageBuilder.build(setProperties(match, acceptUrl, declineUrl), "email/verification.html");
+        return emailMessageBuilder.build(setProperties(match), "email/verification.html");
     }
 
-    private HashMap<String, Object> setProperties(Match match, String accept, String decline) {
+    private HashMap<String, Object> setProperties(Match match) {
         var mailProperties = new HashMap<String, Object>();
-        mailProperties.put("acceptUrl", accept);
-        mailProperties.put("declineUrl", decline);
 
+        mailProperties.put("matchId", match.getMatchId());
         mailProperties.put("playerA1Name", match.getTeamAPlayer1().getFullName());
         mailProperties.put("playerB1Name", match.getTeamBPlayer1().getFullName());
 
@@ -78,5 +65,17 @@ public class EmailService {
 
     private boolean checkPlayerExist(User user) {
         return Objects.nonNull(user);
+    }
+
+    private MimeMessagePreparator createEmail(MatchVerificationSentEvent matchVerificationSentEvent) {
+        var matchVerificationRequest = matchVerificationSentEvent.getMatchVerificationRequest();
+        var match = matchVerificationRequest.getMatch();
+        return mimeMessage -> {
+            MimeMessageHelper messageHelper = new MimeMessageHelper(mimeMessage);
+            messageHelper.setFrom(match.getTeamAPlayer1().getEmail());
+            messageHelper.setTo(matchVerificationRequest.getReceiver().getEmail());
+            messageHelper.setSubject(setSubject(match));
+            messageHelper.setText(verificationText(matchVerificationSentEvent), true);
+        };
     }
 }
