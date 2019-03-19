@@ -1,6 +1,7 @@
 package de.adesso.kicker.email;
 
 import de.adesso.kicker.match.persistence.Match;
+import de.adesso.kicker.notification.matchverificationrequest.persistence.MatchVerificationRequest;
 import de.adesso.kicker.notification.matchverificationrequest.service.events.MatchVerificationSentEvent;
 import de.adesso.kicker.notification.message.persistence.Message;
 import de.adesso.kicker.user.persistence.User;
@@ -36,24 +37,26 @@ public class SendVerificationMailService {
     }
 
     private String verificationText(MatchVerificationSentEvent matchVerificationSentEvent) {
-        Properties p = new Properties();
+        Match match = matchVerificationSentEvent.getMatchVerificationRequest().getMatch();
 
-        String hello = MessageFormat.format(p.getProperty("email.twoLosers"), matchVerificationSentEvent.getMatchVerificationRequest().getMatch().getTeamAPlayer1(), "bar");
-        System.out.println(hello);
-        return hello;
-
+        return emailMessageBuilder.build(setProperties(matchVerificationSentEvent.getMatchVerificationRequest()),
+                "email/plainText.txt");
     }
 
     private String verificationHTML(MatchVerificationSentEvent matchVerificationSentEvent) {
         Match match = matchVerificationSentEvent.getMatchVerificationRequest().getMatch();
 
-        return emailMessageBuilder.build(setProperties(match), "email/verification.html");
+        return emailMessageBuilder.build(setProperties(matchVerificationSentEvent.getMatchVerificationRequest()),
+                "email/verification.html");
     }
 
-    private HashMap<String, Object> setProperties(Match match) {
+    private HashMap<String, Object> setProperties(MatchVerificationRequest matchVerificationRequest) {
+        var match = matchVerificationRequest.getMatch();
+
         var mailProperties = new HashMap<String, Object>();
 
         mailProperties.put("matchId", match.getMatchId());
+        mailProperties.put("receiver", matchVerificationRequest.getReceiver().getFullName());
         mailProperties.put("playerA1Name", match.getTeamAPlayer1().getFullName());
         mailProperties.put("playerB1Name", match.getTeamBPlayer1().getFullName());
 
@@ -79,11 +82,12 @@ public class SendVerificationMailService {
         var matchVerificationRequest = matchVerificationSentEvent.getMatchVerificationRequest();
         var match = matchVerificationRequest.getMatch();
         return mimeMessage -> {
-            MimeMessageHelper messageHelper = new MimeMessageHelper(mimeMessage);
+            MimeMessageHelper messageHelper = new MimeMessageHelper(mimeMessage, true);
             messageHelper.setFrom(match.getTeamAPlayer1().getEmail());
             messageHelper.setTo(matchVerificationRequest.getReceiver().getEmail());
             messageHelper.setSubject(setSubject(match));
-            messageHelper.setText(verificationText(matchVerificationSentEvent), verificationHTML(matchVerificationSentEvent));
+            messageHelper.setText(verificationText(matchVerificationSentEvent),
+                    verificationHTML(matchVerificationSentEvent));
         };
     }
 }
