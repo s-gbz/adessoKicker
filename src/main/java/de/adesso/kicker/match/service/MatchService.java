@@ -1,20 +1,20 @@
 package de.adesso.kicker.match.service;
 
-import de.adesso.kicker.events.match.MatchCreatedEvent;
-import de.adesso.kicker.events.match.MatchDeclinedEvent;
-import de.adesso.kicker.events.match.MatchVerifiedEvent;
 import de.adesso.kicker.match.exception.FutureDateException;
 import de.adesso.kicker.match.exception.InvalidCreatorException;
 import de.adesso.kicker.match.exception.SamePlayerException;
 import de.adesso.kicker.match.persistence.Match;
 import de.adesso.kicker.match.persistence.MatchRepository;
-import de.adesso.kicker.ranking.service.RankingService;
-import de.adesso.kicker.user.persistence.User;
+import de.adesso.kicker.match.service.events.MatchCreatedEvent;
+import de.adesso.kicker.match.service.events.MatchDeclinedEvent;
+import de.adesso.kicker.match.service.events.MatchVerifiedEvent;
+import de.adesso.kicker.user.service.RankingService;
 import de.adesso.kicker.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.Objects;
@@ -31,6 +31,7 @@ public class MatchService {
 
     private final ApplicationEventPublisher applicationEventPublisher;
 
+    @Transactional
     public void addMatchEntry(Match match) {
         checkForFutureDate(match);
         checkSamePlayer(match);
@@ -45,6 +46,7 @@ public class MatchService {
     }
 
     @EventListener
+    @Transactional
     public void verifyMatch(MatchVerifiedEvent matchVerifiedEvent) {
         Match match = matchVerifiedEvent.getMatch();
         match.setVerified(true);
@@ -67,13 +69,16 @@ public class MatchService {
     }
 
     private void updateStatistics(Match match) {
-        for (User winner : match.getWinners()) {
+        var winners = match.getWinners();
+        var losers = match.getWinners();
+        for (var winner : winners) {
             winner.increaseWins();
         }
-        for (User loser : match.getLosers()) {
+        for (var loser : losers) {
             loser.increaseLosses();
         }
-        rankingService.updateRatings(match);
+        rankingService.updateRatings(winners, losers);
+        rankingService.updateRanks();
     }
 
     private void checkSamePlayer(Match match) {

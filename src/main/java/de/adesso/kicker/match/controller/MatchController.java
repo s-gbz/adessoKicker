@@ -5,7 +5,6 @@ import de.adesso.kicker.match.exception.InvalidCreatorException;
 import de.adesso.kicker.match.exception.SamePlayerException;
 import de.adesso.kicker.match.persistence.Match;
 import de.adesso.kicker.match.service.MatchService;
-import de.adesso.kicker.notification.service.NotificationService;
 import de.adesso.kicker.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.mail.MailException;
@@ -26,8 +25,6 @@ public class MatchController {
     private final MatchService matchService;
 
     private final UserService userService;
-
-    private final NotificationService notificationService;
 
     @GetMapping("/add")
     public ModelAndView getAddMatch() {
@@ -67,11 +64,12 @@ public class MatchController {
     }
 
     private ModelAndView defaultAddMatchView(ModelAndView modelAndView) {
-        modelAndView.addObject("match", new Match());
-        modelAndView.addObject("users", userService.getAllUsers());
-        modelAndView.addObject("currentUser", userService.getLoggedInUser());
-        modelAndView.addObject("notifications",
-                notificationService.getNotificationsByReceiver(userService.getLoggedInUser()));
+        var match = new Match();
+        var user = userService.getLoggedInUser();
+        var users = userService.getAllUsers();
+        modelAndView.addObject("match", match);
+        modelAndView.addObject("currentUser", user);
+        modelAndView.addObject("users", users);
         modelAndView.setViewName("sites/matchresult.html");
         return modelAndView;
     }

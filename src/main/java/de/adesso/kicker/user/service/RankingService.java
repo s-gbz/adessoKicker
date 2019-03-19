@@ -1,13 +1,13 @@
-package de.adesso.kicker.ranking.service;
+package de.adesso.kicker.user.service;
 
-import de.adesso.kicker.match.persistence.Match;
-import de.adesso.kicker.ranking.persistence.Ranking;
-import de.adesso.kicker.ranking.persistence.RankingRepository;
+import de.adesso.kicker.user.persistence.Ranking;
+import de.adesso.kicker.user.persistence.RankingRepository;
 import de.adesso.kicker.user.persistence.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -35,14 +35,20 @@ public class RankingService {
 
     private static final int INDEX_OFFSET = 1;
 
-    public int getPositionOfPlayer(Ranking ranking) {
+    public void updateRanks() {
+        var rankings = getAllRankings();
+        rankings.forEach(ranking -> {
+            int rank = calculateRank(ranking);
+            ranking.setRank(rank);
+        });
+        saveAllRankings(rankings);
+    }
+
+    private int calculateRank(Ranking ranking) {
         return rankingRepository.countAllByRatingAfter(ranking.getRating()) + INDEX_OFFSET;
     }
 
-    public void updateRatings(Match match) {
-        var winners = match.getWinners();
-        var losers = match.getLosers();
-
+    public void updateRatings(List<User> winners, List<User> losers) {
         var winnerRating = getTeamRating(winners);
         var loserRating = getTeamRating(losers);
 
@@ -51,6 +57,8 @@ public class RankingService {
 
         applyResultsToTeam(winners, Outcome.WON, expectedWinnerScore);
         applyResultsToTeam(losers, Outcome.LOST, expectedLoserScore);
+
+        updateRanks();
     }
 
     private double expectedScore(int winnerRating, int loserRating) {
@@ -65,7 +73,14 @@ public class RankingService {
     }
 
     private int getTeamRating(List<User> players) {
-        return players.stream().map(User::getRanking).mapToInt(Ranking::getRating).sum();
+        return players.stream().map(user -> {
+            var ranking = user.getRanking();
+            if (Objects.isNull(ranking)) {
+                ranking = new Ranking();
+                user.setRanking(ranking);
+            }
+            return ranking;
+        }).mapToInt(Ranking::getRating).sum();
     }
 
     private void applyResultsToTeam(List<User> players, Outcome outcome, double expectedScore) {
@@ -94,5 +109,13 @@ public class RankingService {
             return KFactor.MEDIUM;
         }
         return KFactor.HIGH;
+    }
+
+    private List<Ranking> getAllRankings() {
+        return rankingRepository.findAll();
+    }
+
+    private void saveAllRankings(List<Ranking> rankings) {
+        rankingRepository.saveAll(rankings);
     }
 }

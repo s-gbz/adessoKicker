@@ -3,6 +3,7 @@ package de.adesso.kicker.user;
 import de.adesso.kicker.user.exception.UserNotFoundException;
 import de.adesso.kicker.user.persistence.User;
 import de.adesso.kicker.user.persistence.UserRepository;
+import de.adesso.kicker.user.service.RankingService;
 import de.adesso.kicker.user.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -37,6 +38,9 @@ class UserServiceTest {
     @Mock
     UserRepository userRepository;
 
+    @Mock
+    RankingService rankingService;
+
     @InjectMocks
     UserService userService;
 
@@ -49,15 +53,15 @@ class UserServiceTest {
         return UserDummy.defaultUser();
     }
 
-    private static List<User> createUserList() {
-        return Collections.singletonList(UserDummy.defaultUser());
+    private static List<User> createUserWithRankingList() {
+        return Collections.singletonList(UserDummy.userWithVeryHighRating());
     }
 
     @Test
     @DisplayName("Should return a list of all users")
     void whenUsersExistReturnAllUsers() {
         // given
-        var userList = createUserList();
+        var userList = createUserWithRankingList();
         given(userRepository.findAll()).willReturn(userList);
 
         // when
@@ -158,6 +162,8 @@ class UserServiceTest {
         given(userRepository.findById(anyString())).willReturn(Optional.empty());
         given(userRepository.save(user)).willReturn(user);
 
+//        doNothing().when(rankingService).updateRanks();
+
         // when
         userService.checkFirstLogin(authEvent);
 
@@ -169,10 +175,10 @@ class UserServiceTest {
     @DisplayName("Expect a list of users")
     void expectListOfUsers() {
         // given
-        var userList = createUserList();
-        var pageable = mock(Page.class);
-        given(userRepository.findAll(any(Pageable.class))).willReturn(pageable);
-        given(pageable.getContent()).willReturn(userList);
+        var userList = createUserWithRankingList();
+        var page = mock(Page.class);
+        given(userRepository.findAllByRankingNotNull(any(Pageable.class))).willReturn(page);
+        given(page.getContent()).willReturn(userList);
 
         // when
         var actualList = userService.getUserPageSortedByRating(0, 10);

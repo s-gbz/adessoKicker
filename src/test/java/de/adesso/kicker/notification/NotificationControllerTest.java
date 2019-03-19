@@ -1,17 +1,20 @@
 package de.adesso.kicker.notification;
 
 import de.adesso.kicker.notification.controller.NotificationController;
-import de.adesso.kicker.notification.exception.NotificationNotExistingException;
+import de.adesso.kicker.notification.exception.NotificationNotFoundException;
 import de.adesso.kicker.notification.exception.WrongReceiverException;
 import de.adesso.kicker.notification.message.MessageDummy;
 import de.adesso.kicker.notification.service.NotificationService;
 import de.adesso.kicker.user.service.UserService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.keycloak.adapters.springboot.KeycloakAutoConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -22,8 +25,10 @@ import static org.mockito.internal.verification.VerificationModeFactory.times;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(value = NotificationController.class, secure = false)
-public class NotificationControllerTest {
+@TestPropertySource("classpath:application-test.properties")
+@Import(KeycloakAutoConfiguration.class)
+@WebMvcTest(value = NotificationController.class)
+class NotificationControllerTest {
 
     @MockBean
     NotificationService notificationService;
@@ -74,13 +79,13 @@ public class NotificationControllerTest {
     void AcceptNotExistingNotification() throws Exception {
         // given
         var notificationId = 1;
-        doThrow(NotificationNotExistingException.class).when(notificationService).acceptNotification(notificationId);
+        doThrow(NotificationNotFoundException.class).when(notificationService).acceptNotification(notificationId);
 
         // when
         var result = this.mockMvc.perform(get("/notifications/accept/" + notificationId));
 
         // then
-        willThrow(NotificationNotExistingException.class).given(notificationService).acceptNotification(anyLong());
+        willThrow(NotificationNotFoundException.class).given(notificationService).acceptNotification(anyLong());
         result.andExpect(status().isOk())
                 .andExpect(view().name("sites/notificationresult.html"))
                 .andExpect(model().attribute("notExisting", true));

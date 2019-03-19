@@ -1,9 +1,9 @@
 package de.adesso.kicker.match;
 
-import de.adesso.kicker.email.SendVerificationMailService;
-import de.adesso.kicker.events.match.MatchVerificationSentEvent;
+import de.adesso.kicker.email.EmailService;
 import de.adesso.kicker.match.persistence.MatchRepository;
 import de.adesso.kicker.notification.matchverificationrequest.persistence.MatchVerificationRequestRepository;
+import de.adesso.kicker.notification.matchverificationrequest.service.events.MatchVerificationSentEvent;
 import de.adesso.kicker.user.persistence.UserRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -44,14 +44,14 @@ class MatchControllerIntegrationTest {
     private MatchVerificationRequestRepository matchVerificationRequestRepository;
 
     @MockBean
-    private SendVerificationMailService sendVerificationMailService;
+    private EmailService emailService;
 
     @Test
     @DisplayName("Assures that adding a match works through all layers")
     @WithMockUser(username = "user1")
     void addMatchWorksThroughAllLayers() throws Exception {
         // given
-        willDoNothing().given(sendVerificationMailService).sendVerification(any(MatchVerificationSentEvent.class));
+        willDoNothing().given(emailService).sendVerification(any(MatchVerificationSentEvent.class));
         var user1 = userRepository.findById("user1").orElseThrow();
         var user2 = userRepository.findById("user2").orElseThrow();
 
@@ -66,6 +66,7 @@ class MatchControllerIntegrationTest {
                 .param("teamAPlayer1.losses", String.valueOf(user1.getLosses()))
                 .param("teamAPlayer1.ranking.rankingId", user1.getRanking().getRankingId())
                 .param("teamAPlayer1.ranking.rating", String.valueOf(user1.getRanking().getRating()))
+                .param("teamAPlayer1.ranking.rank", String.valueOf(user1.getRanking().getRank()))
                 .param("teamBPlayer1.userId", user2.getUserId())
                 .param("teamBPlayer1.firstName", user2.getFirstName())
                 .param("teamBPlayer1.lastName", user2.getLastName())
@@ -74,6 +75,7 @@ class MatchControllerIntegrationTest {
                 .param("teamBPlayer1.losses", String.valueOf(user2.getLosses()))
                 .param("teamBPlayer1.ranking.rankingId", user2.getRanking().getRankingId())
                 .param("teamBPlayer1.ranking.rating", String.valueOf(user2.getRanking().getRating()))
+                .param("teamBPlayer1.ranking.rank", String.valueOf(user2.getRanking().getRank()))
                 .param("winnerTeamA", "true"));
 
         // then
@@ -82,6 +84,6 @@ class MatchControllerIntegrationTest {
         assertEquals(user1.getUserId(), match.getTeamAPlayer1().getUserId());
         assertEquals(user2.getUserId(), match.getTeamBPlayer1().getUserId());
         assertNotNull(notifications);
-        then(sendVerificationMailService).should(times(1)).sendVerification(any(MatchVerificationSentEvent.class));
+        then(emailService).should(times(1)).sendVerification(any(MatchVerificationSentEvent.class));
     }
 }

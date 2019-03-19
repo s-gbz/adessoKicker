@@ -1,16 +1,11 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
   <title>adesso kicker</title>
-
-  <!-- Required meta tags -->
   <meta charset="UTF-8" name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
   <!-- JQuery -->
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-
-  <!-- Popper JS -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js"></script>
 
   <!-- Bootstrap -->
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css">
@@ -29,43 +24,42 @@
   <!-- LESS -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/less.js/3.9.0/less.min.js"></script>
 
-  <!-- ranking js -->
+  <!-- Ranking JS -->
   <script src="/js/ranking.js"></script>
-
 </head>
 <body>
 <header th:replace="~{fragments/header.html :: header}"></header>
 <div id="everything-above-table" class="container">
   <div class="row">
     <div class="col-11">
-      <div id="text-container">
+      <div id="playerName">
         <!-- Searchbar -->
         <div class="search-bar">
           <div class="input-group">
-            <div class="input-group-prepend">
+            <div class="input-group-prepend" id="search-bt">
               <span class="input-group-text">
-          <i class="fas fa-search"></i>
-        </span>
+                <i class="fas fa-search"></i>
+              </span>
             </div>
-            <input class="form-control" type="text" th:placeholder="#{'searchbar'}"/>
+            <input class="form-control" type="text" th:placeholder="#{searchBar}"/>
           </div>
           <div class="panel-body search-bar-content container">
             <ul class="list-group">
-              <li class="list-group-item" th:each="u : ${allUsers}"
+              <li class="list-group-item" th:each="user : ${allUsers}"
                   onclick="window.location.href=this.getAttribute('href')"
-                  th:href="@{/ranking(page=${@rankingService.getPositionOfPlayer(u.ranking) <= (param.size == null ? 10 : T(Integer).parseInt(param.size)) ? 0 :
-                  ((@rankingService.getPositionOfPlayer(u.ranking) - 1) / (param.size == null ? 10 : T(Integer).parseInt(param.size)))},size=${param.size == null ? 10 : param.size})}">
-                <span th:text="${u.getFullName()}">No user found</span>
+                  th:href="@{/ranking(page=${user.ranking.rank <= (param.size == null ? 10 : T(Integer).parseInt(param.size)) ? 0 :
+                  ((user.ranking.rank - 1) / (param.size == null ? 10 : T(Integer).parseInt(param.size)))},size=${param.size == null ? 10 : param.size}, player=${user.getUserId()})}">
+                <span th:text="${user.getFullName()}">No user found</span>
               </li>
             </ul>
           </div>
         </div>
-        <h2 th:text="#{sites.ranking}"></h2>
+        <h2 th:text="#{header.ranking}"></h2>
       </div>
     </div>
     <!-- Pager Buttons Vertical -->
     <div class="col-1">
-      <div class="btn-group-vertical hide-on-small-screen">
+      <div class="btn-group-vertical" id="pager-vertical">
         <div th:if="${(param.page != null) && (T(Integer).parseInt(param.page) != 0)}">
           <button class="pager" onclick="previousPage()"><i class="fas fa-chevron-circle-up"></i></button>
         </div>
@@ -78,39 +72,75 @@
   </div>
 </div>
 <!-- User List -->
-<div class="container-fluid" id="table-container">
-  <table class="user-table table">
-    <thead>
-    <tr>
-      <th th:text="#{statistics.rank}"></th>
-      <th th:text="#{ranking.name}"></th>
-      <th th:text="#{statistics.wins}"></th>
-      <th th:text="#{statistics.winRate}"></th>
-      <th th:text="#{statistics.points}"></th>
-    </tr>
-    </thead>
-    <tbody>
-    <tr class="user-table-row" onclick="window.location.href=this.getAttribute('href')" th:each="player : ${users}"
-        th:href="@{/users/u/{id}(id=${player.userId})}">
-      <td th:text="${@rankingService.getPositionOfPlayer(player.ranking)}"></td>
-      <td th:text="${player.getFullName()}"></td>
-      <td th:text="${player.wins}"></td>
-      <td th:text="${player.getWinRatio() + '%'}"></td>
-      <td th:text="${player.ranking.rating}"></td>
-    </tr>
-    <tr class="user-table-row" th:if="${user}" onclick="window.location.href=this.getAttribute('href')"
-        th:href="@{/users/u/{id}(id=${user.userId})}" id="user-self">
-      <td th:text="${@rankingService.getPositionOfPlayer(user.ranking)}"></td>
-      <td th:text="${user.getFullName()}"></td>
-      <td th:text="${user.wins}"></td>
-      <td th:text="${user.getWinRatio() + '%'}"></td>
-      <td th:text="${user.ranking.rating}"></td>
-    </tr>
-    </tbody>
-  </table>
+<div class="container-fluid">
+  <div class="shadow-sm" id="table-container" th:if="${allUsers.size()>0}">
+    <table class="user-table table">
+      <thead>
+      <tr>
+        <!-- Rank -->
+        <th>
+          <span th:text="#{statistics.rank}"></span>
+          <i class="fas fa-chart-line"></i>
+        </th>
+        <!-- Name -->
+        <th class="thead-name">
+          <span th:text="#{statistics.name}"></span>
+        </th>
+        <!-- Wins -->
+        <th>
+          <span th:text="#{statistics.wins}"></span>
+          <i class="fas fa-check"></i>
+        </th>
+        <!-- Win-Rate -->
+        <th>
+          <span th:text="#{statistics.winRate}"></span>
+          <i class="fas fa-balance-scale"></i>
+        </th>
+        <!-- Points -->
+        <th>
+          <span th:text="#{statistics.points}"></span>
+          <i class="fas fa-trophy"></i>
+        </th>
+      </tr>
+      </thead>
+      <tbody>
+      <!-- All users -->
+      <tr class="user-table-row" onclick="window.location.href=this.getAttribute('href')"
+          th:each="player : ${users}"
+          th:href="@{/users/u/{id}(id=${player.userId})}"
+          th:id="${param.player == null ? (player == user ? 'user-self' : '') : (player.getUserId() == param.player[0] ? 'user-searched' : (player == user ? 'user-self' : ''))}">
+        <td>
+          <span class="badge badge-position align-center" th:text="${player.ranking.rank}"></span>
+        </td>
+        <td class="user-table-name" th:text="${player.getFullName()}"></td>
+        <td th:text="${player.wins}"></td>
+        <td th:text="${player.getWinRatio() + '%'}"></td>
+        <td th:text="${player.ranking.rating}"></td>
+      </tr>
+      <!-- Logged-In User -->
+      <tr class="user-table-row"
+          sec:authorize="isAuthenticated()"
+          th:if="${!users.contains(user) && user.ranking != null}"
+          th:href="@{/users/u/{id}(id=${user.userId})}"
+          onclick="window.location.href=this.getAttribute('href')" id="user-self">
+        <td>
+          <span id="user-self-badge" class="badge badge-position align-center" th:text="${user.ranking.rank}"></span>
+        </td>
+        <td class="user-table-name" th:text="${user.getFullName()}"></td>
+        <td th:text="${user.wins}"></td>
+        <td th:text="${user.getWinRatio() + '%'}"></td>
+        <td th:text="${user.ranking.rating}"></td>
+      </tr>
+      </tbody>
+    </table>
+  </div>
+  <div th:if="${allUsers.size()==0}">
+    <h2 class="text-center" th:text="#{ranking.noRanks}"></h2>
+  </div>
+  <div id="noRankList" class="text-center alert alert-danger" role="alert" sec:authorize="isAuthenticated()" th:if="${@userService.getLoggedInUser().getRanking()==null}" th:text="#{ranking.noRank}"></div>
 </div>
 <!-- Pager Buttons Horizontal -->
-<div class="btn-group-horizontal hide-on-large-screen">
+<div class="btn-group-horizontal" id="pager-horizontal">
   <div th:if="${(param.page != null) && (T(Integer).parseInt(param.page) != 0)}">
     <button class="pager" onclick="previousPage()"><i class="fas fa-chevron-circle-up"></i></button>
   </div>

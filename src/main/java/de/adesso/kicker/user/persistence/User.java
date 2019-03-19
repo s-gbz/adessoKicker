@@ -1,6 +1,5 @@
 package de.adesso.kicker.user.persistence;
 
-import de.adesso.kicker.ranking.persistence.Ranking;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -29,14 +28,13 @@ public class User {
     @OneToOne(cascade = CascadeType.ALL)
     private Ranking ranking;
 
-    public User(String userId, String firstName, String lastName, String email, Ranking ranking) {
+    public User(String userId, String firstName, String lastName, String email) {
         this.userId = userId;
         this.firstName = firstName;
         this.lastName = lastName;
         this.email = email;
         this.wins = 0;
         this.losses = 0;
-        this.ranking = ranking;
     }
 
     public int getWinRatio() {

@@ -1,4 +1,4 @@
-package de.adesso.kicker.ranking.persistence;
+package de.adesso.kicker.user.persistence;
 
 import lombok.Data;
 
@@ -18,6 +18,8 @@ public class Ranking {
 
     @NotNull
     private int rating;
+
+    private Integer rank;
 
     public Ranking() {
         this.rating = 1000;
