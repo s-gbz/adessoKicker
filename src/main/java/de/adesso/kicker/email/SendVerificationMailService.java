@@ -1,9 +1,11 @@
 package de.adesso.kicker.email;
 
-import de.adesso.kicker.events.match.MatchVerificationSentEvent;
 import de.adesso.kicker.match.persistence.Match;
+import de.adesso.kicker.notification.matchverificationrequest.service.events.MatchVerificationSentEvent;
+import de.adesso.kicker.notification.message.persistence.Message;
 import de.adesso.kicker.user.persistence.User;
 import lombok.RequiredArgsConstructor;
+import org.apache.logging.log4j.message.MapMessage;
 import org.springframework.context.event.EventListener;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -11,11 +13,8 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.mail.javamail.MimeMessagePreparator;
 import org.springframework.stereotype.Service;
 
-import javax.servlet.http.HttpServletRequest;
 import java.text.MessageFormat;
-import java.util.HashMap;
-import java.util.Objects;
-import java.util.ResourceBundle;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -37,6 +36,15 @@ public class SendVerificationMailService {
     }
 
     private String verificationText(MatchVerificationSentEvent matchVerificationSentEvent) {
+        Properties p = new Properties();
+
+        String hello = MessageFormat.format(p.getProperty("email.twoLosers"), matchVerificationSentEvent.getMatchVerificationRequest().getMatch().getTeamAPlayer1(), "bar");
+        System.out.println(hello);
+        return hello;
+
+    }
+
+    private String verificationHTML(MatchVerificationSentEvent matchVerificationSentEvent) {
         Match match = matchVerificationSentEvent.getMatchVerificationRequest().getMatch();
 
         return emailMessageBuilder.build(setProperties(match), "email/verification.html");
@@ -75,7 +83,7 @@ public class SendVerificationMailService {
             messageHelper.setFrom(match.getTeamAPlayer1().getEmail());
             messageHelper.setTo(matchVerificationRequest.getReceiver().getEmail());
             messageHelper.setSubject(setSubject(match));
-            messageHelper.setText(verificationText(matchVerificationSentEvent), true);
+            messageHelper.setText(verificationText(matchVerificationSentEvent), verificationHTML(matchVerificationSentEvent));
         };
     }
 }
