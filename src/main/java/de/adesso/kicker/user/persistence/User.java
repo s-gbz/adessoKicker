@@ -22,6 +22,8 @@ public class User {
     @NotNull
     private String email;
 
+    private boolean sendEmail;
+
     private long wins;
     private long losses;
 
@@ -33,6 +35,7 @@ public class User {
         this.firstName = firstName;
         this.lastName = lastName;
         this.email = email;
+        this.sendEmail = true;
         this.wins = 0;
         this.losses = 0;
     }
