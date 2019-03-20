@@ -28,7 +28,7 @@ public class User {
     private long losses;
 
     @OneToOne(cascade = CascadeType.ALL)
-    private Ranking ranking;
+    private Statistic statistic;
 
     public User(String userId, String firstName, String lastName, String email) {
         this.userId = userId;
@@ -53,13 +53,5 @@ public class User {
 
     public String getFullName() {
         return String.format("%s %s", firstName, lastName);
-    }
-
-    public void increaseWins() {
-        this.wins += 1;
-    }
-
-    public void increaseLosses() {
-        this.losses += 1;
     }
 }
